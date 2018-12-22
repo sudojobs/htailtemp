@@ -1,0 +1,2 @@
+python main.py -e aoywq9he1eybf-ats.iot.ap-south-1.amazonaws.com -r root-CA.crt -c aws_thing2.cert.pem -k aws_thing2.private.key
+

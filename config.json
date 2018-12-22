@@ -1,0 +1,60 @@
+{
+
+
+
+    "bDropWeight":250,
+    "feed":[
+        {
+            "feedId":1,
+            "feedTime":[
+                23,
+                15
+            ],
+            "autoFeed":true,
+            "feedWeight":250,
+            "fed":false
+        },
+        {
+            "feedId":2,
+            "feedTime":[
+                23,
+                15
+            ],
+            "autoFeed":true,
+            "feedWeight":250,
+            "fed":false
+        },
+        {
+            "feedId":3,
+            "feedTime":[
+                23,
+                15
+            ],
+            "autoFeed":true,
+            "feedWeight":250,
+            "fed":false
+        },
+        {
+            "feedId":4,
+            "feedTime":[
+                23,
+                15
+            ],
+            "autoFeed":true,
+            "feedWeight":250,
+            "fed":false
+        },
+        {
+            "feedId":5,
+            "feedTime":[
+                23,
+                15
+            ],
+
+
+            "autoFeed":true,
+            "feedWeight":250,
+            "fed":false
+        }
+    ]
+}
