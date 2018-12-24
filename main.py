@@ -40,15 +40,59 @@ def button_callback():
     rgb.cyanSlow();
     print("--------------\n\n")
 
+def physical_button_press():
+    rgb.cyanOff()
+    rgb.whiteZero()
+    print("Motor Run: ")
+    print("Button was pushed!")
+    message = {}
+    message['time']     =time.asctime( time.localtime(time.time()) ) 
+    message['quantity'] = "200" 
+    message['food_remaing'] = "700"
+    message['feed_ack']  = "button_drop"
+    messageJson = json.dumps(message)
+    myAWSIoTMQTTClient.publish("hungrytail_device", messageJson, 0)
+    print('Published topic %s: %s\n' % (topic, messageJson))
+    motor_runner.pulse(5)
+    rgb.whiteOff()
+    rgb.cyanSlow();
+    print("--------------\n\n")
+
 def sch_drop():
     rgb.cyanOff()
     rgb.whiteZero()
     print("Motor Run: ")
     print("schedule drop!")
+    message = {}
+    message['time']     =time.asctime( time.localtime(time.time()) )
+    message['quantity'] = "200" 
+    message['food_remaing'] = "700"
+    message['feed_ack']  = "schedule_drop"
+    messageJson = json.dumps(message)
+    myAWSIoTMQTTClient.publish("hungrytail_device", messageJson, 0)
+    print('Published topic %s: %s\n' % (topic, messageJson))
     motor_runner.pulse(5)
     rgb.whiteOff()
     rgb.cyanSlow();
     print("--------------\n\n")
+
+def pet_activity():
+    rgb.cyanOff()
+    rgb.whiteZero()
+    message = {}
+    message['time']     =time.asctime( time.localtime(time.time()) )
+    message['pet_id']   = "oliver"
+    message['photo_path'] = "www.hungrytail.com" 
+    message['quantity_eaten'] = "100" 
+    message['food_remaing_bowl'] = "100"
+    message['food_remaing'] = "500"
+    messageJson = json.dumps(message)
+    myAWSIoTMQTTClient.publish("hungrytail_device", messageJson, 0)
+    print('Published topic %s: %s\n' % (topic, messageJson))
+    rgb.whiteOff()
+    rgb.cyanSlow();
+    print("--------------\n\n")
+
 
 def update_for_next_feed(val):
     time1=feed_time1[val]
@@ -60,7 +104,7 @@ rgb.blueOn()
 GPIO.setwarnings(False) # Ignore warning for now
 GPIO.setmode(GPIO.BOARD) # Use physical pin numbering
 GPIO.setup(19, GPIO.IN, pull_up_down=GPIO.PUD_DOWN) # Set pin 10 to be an input pin and set initial value to be pulled low (off)
-GPIO.add_event_detect(19,GPIO.RISING,callback=button_callback) # Setup event on pin 10 rising edge
+GPIO.add_event_detect(19,GPIO.RISING,callback=physical_button_press) # Setup event on pin 10 rising edge
 
 AllowedActions = ['both', 'publish', 'subscribe']
 feed_time1= []
@@ -69,12 +113,11 @@ auto_feed=[]
 
 # Custom MQTT message callback
 def customCallback(client, userdata, message):
-    #rgb.cyanOff()
-    #rgb.whiteZero()
-    #print("Motor Run: ")
-    #motor_runner.pulse(5)
-    #rgb.whiteOff()
-    #rgb.cyanSlow();
+    rgb.cyanOff()
+    rgb.whiteZero()
+    print("Publish Recieved from Server")
+    rgb.whiteOff()
+    rgb.cyanSlow();
     print(message.topic);
     alldata=json.loads(message.payload.decode("utf-8"));
     topic=alldata["payload_topic"]
@@ -83,8 +126,40 @@ def customCallback(client, userdata, message):
         button_callback()
         publish_response=0
         message = {}
-        message['message'] = "Success_Test" 
-        message['food_left'] = "10" 
+        message['message'] = "Success" 
+        message['food_left'] = "10"
+        message['feed_ack']  = "test_drop"
+        messageJson = json.dumps(message)
+        myAWSIoTMQTTClient.publish("hungrytail_device", messageJson, 0)
+        print('Published topic %s: %s\n' % (topic, messageJson))
+    elif(topic=="SCHEDULE_FEED"):
+        print(topic)
+        #Store Data into SQL, Read in While Loop"
+        message = {}
+        message['message'] = "Recieved" 
+        message['totalfeed'] = "5"
+        message['feed_ack']  = "schedule_drop"
+        messageJson = json.dumps(message)
+        myAWSIoTMQTTClient.publish("hungrytail_device", messageJson, 0)
+        print('Published topic %s: %s\n' % (topic, messageJson))
+    elif(topic=="CANCEL_FEED"  ):
+        print(topic)
+        #Store Data into SQL, Read in While Loop"
+        message = {}
+        message['message'] = "Recieved" 
+        message['nooffeed'] = 1
+        message['feed_ack']  = "cancel_drop"
+        messageJson = json.dumps(message)
+        myAWSIoTMQTTClient.publish("hungrytail_device", messageJson, 0)
+        print('Published topic %s: %s\n' % (topic, messageJson))
+    elif(topic=="APP_BUTTON_DROP"):
+        print(topic)
+        #Store Data into SQL, Read in While Loop"
+        button_callback()
+        message = {}
+        message['message'] = "Success" 
+        message['nooffeed'] = 1
+        message['feed_ack']  = "app_drop"
         messageJson = json.dumps(message)
         myAWSIoTMQTTClient.publish("hungrytail_device", messageJson, 0)
         print('Published topic %s: %s\n' % (topic, messageJson))
