@@ -30,12 +30,28 @@ import RPi.GPIO as GPIO # Import Raspberry Pi GPIO library
 #import ultrasonic
 drop =0 
 publish_response=0
+
+def writeToJSONFile(path, fileName, data):
+    filePathNameWExt = './' + path + '/' + fileName + '.json'
+    with open(filePathNameWExt, 'w') as fp:
+         json.dump(data, fp)
+
 def button_callback():
     rgb.cyanOff()
     rgb.whiteZero()
     print("Motor Run: ")
     print("Button was pushed!")
     motor_runner.pulse(5)
+    message = {}
+    message['action']     =  "feedActivity"
+    message['data'] =  
+    message['type'] = "appDrop"
+    message['quantity_dropped']  = "150"
+    message['food_remaining_container'] = "300"
+    message['timeStamp']=time.asctime( time.localtime(time.time()) )
+    messageJson = json.dumps(message)
+    myAWSIoTMQTTClient.publish("device", messageJson, 0)
+    print('Published topic %s: %s\n' % (topic, messageJson))
     rgb.whiteOff()
     rgb.cyanSlow();
     print("--------------\n\n")
@@ -46,12 +62,14 @@ def physical_button_press():
     print("Motor Run: ")
     print("Button was pushed!")
     message = {}
-    message['time']     =time.asctime( time.localtime(time.time()) ) 
-    message['quantity'] = "200" 
-    message['food_remaing'] = "700"
-    message['feed_ack']  = "button_drop"
+    message['action']     =  "feedActivity"
+    message['data'] =  
+    message['type'] = "buttonDrop"
+    message['quantity_dropped']  = "150"
+    message['food_remaining_container'] = "300"
+    message['timeStamp']=time.asctime( time.localtime(time.time()) )
     messageJson = json.dumps(message)
-    myAWSIoTMQTTClient.publish("hungrytail_device", messageJson, 0)
+    myAWSIoTMQTTClient.publish("device", messageJson, 0)
     print('Published topic %s: %s\n' % (topic, messageJson))
     motor_runner.pulse(5)
     rgb.whiteOff()
@@ -63,15 +81,19 @@ def sch_drop():
     rgb.whiteZero()
     print("Motor Run: ")
     print("schedule drop!")
-    message = {}
-    message['time']     =time.asctime( time.localtime(time.time()) )
-    message['quantity'] = "200" 
-    message['food_remaing'] = "700"
-    message['feed_ack']  = "schedule_drop"
-    messageJson = json.dumps(message)
-    myAWSIoTMQTTClient.publish("hungrytail_device", messageJson, 0)
-    print('Published topic %s: %s\n' % (topic, messageJson))
     motor_runner.pulse(5)
+    message = {}
+    message['action']     =  "feedActivity"
+    message['data'] =  
+    message['type'] = "scheduleDrop"
+    message['scheduleTime'] = "[7:20]"
+    message['quantity_dropped']  = "150"
+    message['food_remaining_container'] = "300"
+    message['autoFeed'] = "1"
+    message['timeStamp']=time.asctime( time.localtime(time.time()) )
+    messageJson = json.dumps(message)
+    myAWSIoTMQTTClient.publish("device", messageJson, 0)
+    print('Published topic %s: %s\n' % (topic, messageJson))
     rgb.whiteOff()
     rgb.cyanSlow();
     print("--------------\n\n")
@@ -87,7 +109,7 @@ def pet_activity():
     message['food_remaing_bowl'] = "100"
     message['food_remaing'] = "500"
     messageJson = json.dumps(message)
-    myAWSIoTMQTTClient.publish("hungrytail_device", messageJson, 0)
+    myAWSIoTMQTTClient.publish("device", messageJson, 0)
     print('Published topic %s: %s\n' % (topic, messageJson))
     rgb.whiteOff()
     rgb.cyanSlow();
@@ -95,10 +117,12 @@ def pet_activity():
 
 
 def update_for_next_feed(val):
-    time1=feed_time1[val]
-    fhour=time1[0]
-    fmins=time1[1]
-    print("Next Time: %s and %s" % (fhour,fmins))
+    tmp=sch[val]
+    fhour=tmp[0]
+    fmins=tmp[1]
+    fauto=tmp[2]
+    fstat=tmp[3]
+    fwght=tmp[4]
 
 rgb.blueOn()
 GPIO.setwarnings(False) # Ignore warning for now
@@ -120,48 +144,57 @@ def customCallback(client, userdata, message):
     rgb.cyanSlow();
     print(message.topic);
     alldata=json.loads(message.payload.decode("utf-8"));
-    topic=alldata["payload_topic"]
-    if(topic=="TEST_FOOD_DROP"):
-        print(topic)
+    action=alldata['action']
+    if(action=="write"):
+        filename=alldata['fileName']
+        data=alldata['data']
+        writeToJSONFile('./',filename,data) 
+        message = {}
+        message['success'] = 1 
+        message['timeStamp'] = time.asctime( time.localtime(time.time()) )
+        messageJson = json.dumps(message)
+        myAWSIoTMQTTClient.publish("device", messageJson, 0)
+        print('Published topic %s: %s\n' % (action, messageJson))
+    elif(action=='read'):
+        filename=alldata['fileName']
+        with open(filename) as json_file:  
+             data = json.load(json_file)
+        message = {}
+        message['fileName'] = filename 
+        message['data'] = data 
+        messageJson = json.dumps(message)
+        myAWSIoTMQTTClient.publish("device", messageJson, 0)
+        print('Published topic %s: %s\n' % (action, messageJson))
+    elif(action=='calibrate'):
+        wieght=alldata['weight']
+        timestamp=alldata['timeStamp']
+        message = {}
+        message['success'] = 1 
+        #message['timeStamp'] = time.asctime( time.localtime(time.time()) )
+        message['timeStamp'] = timestamp 
+        messageJson = json.dumps(message)
+        myAWSIoTMQTTClient.publish("device", messageJson, 0)
+        print('Published topic %s: %s\n' % (action, messageJson))
+    elif(action=='appDrop'):
+        quantity=alldata['quantity']
+        timestamp=alldata['timeStamp']
+        #Store Data into SQL, Read in While Loop"
         button_callback()
-        publish_response=0
         message = {}
-        message['message'] = "Success" 
-        message['food_left'] = "10"
-        message['feed_ack']  = "test_drop"
+        message['success'] = 1 
+        message['timeStamp'] = timestamp      
         messageJson = json.dumps(message)
-        myAWSIoTMQTTClient.publish("hungrytail_device", messageJson, 0)
-        print('Published topic %s: %s\n' % (topic, messageJson))
-    elif(topic=="SCHEDULE_FEED"):
-        print(topic)
-        #Store Data into SQL, Read in While Loop"
+        myAWSIoTMQTTClient.publish("device", messageJson, 0)
+        print('Published topic %s: %s\n' % (action, messageJson))
+    elif(action=='deviceStatus'):
+        timestamp=alldata['timeStamp']
         message = {}
-        message['message'] = "Recieved" 
-        message['totalfeed'] = "5"
-        message['feed_ack']  = "schedule_drop"
+        message['colorCode'] = "[125,255,75]" 
+        message['food_remaining_bowl'] = "50" 
+        message['food_remaining_container']  = "230"
+        message['timeStamp'] = timestamp      
         messageJson = json.dumps(message)
-        myAWSIoTMQTTClient.publish("hungrytail_device", messageJson, 0)
-        print('Published topic %s: %s\n' % (topic, messageJson))
-    elif(topic=="CANCEL_FEED"  ):
-        print(topic)
-        #Store Data into SQL, Read in While Loop"
-        message = {}
-        message['message'] = "Recieved" 
-        message['nooffeed'] = 1
-        message['feed_ack']  = "cancel_drop"
-        messageJson = json.dumps(message)
-        myAWSIoTMQTTClient.publish("hungrytail_device", messageJson, 0)
-        print('Published topic %s: %s\n' % (topic, messageJson))
-    elif(topic=="APP_BUTTON_DROP"):
-        print(topic)
-        #Store Data into SQL, Read in While Loop"
-        button_callback()
-        message = {}
-        message['message'] = "Success" 
-        message['nooffeed'] = 1
-        message['feed_ack']  = "app_drop"
-        messageJson = json.dumps(message)
-        myAWSIoTMQTTClient.publish("hungrytail_device", messageJson, 0)
+        myAWSIoTMQTTClient.publish("device", messageJson, 0)
         print('Published topic %s: %s\n' % (topic, messageJson))
     print("--------------\n\n")
 
@@ -176,7 +209,7 @@ parser.add_argument("-w", "--websocket", action="store_true", dest="useWebsocket
                     help="Use MQTT over WebSocket")
 parser.add_argument("-id", "--clientId", action="store", dest="clientId", default="basicPubSub",
                     help="Targeted client id")
-parser.add_argument("-t", "--topic", action="store", dest="topic", default="hungrytail_server", help="Targeted topic")
+parser.add_argument("-t", "--topic", action="store", dest="topic", default="server", help="Targeted topic")
 parser.add_argument("-m", "--mode", action="store", dest="mode", default="subscribe",
                     help="Operation modes: %s"%str(AllowedActions))
 parser.add_argument("-M", "--message", action="store", dest="message", default="Hello World!",
@@ -242,41 +275,32 @@ myAWSIoTMQTTClient.connect()
 rgb.cyanSlow()
 
 
-with open('feed.json') as json_data:
+with open('schedule.json') as json_data:
     data = json.load(json_data)
-
-for i in xrange(0,len(data)):
-    feed_time1.append(data[i]['feedTime'])
-    auto_feed.append(data[i]['autoFeed'])
-    feed_wght.append(data[i]['feedWeight'])
+    data= data['data']
+    sch= data['feedSchedules']
+    length=len(sch) - 1
+    tmp = sch[0]
+    fhour=tmp[0]
+    fmins=tmp[1]
+    fauto=tmp[2]
+    fstat=tmp[3]
+    fwght=tmp[4]
 
 if args.mode == 'subscribe':
     myAWSIoTMQTTClient.subscribe(topic, 1, customCallback)
 time.sleep(2)
-
-
-length=len(data) -1 
-time1=feed_time1[length]
-fhour=time1[0]
-fmins=time1[1]
 
 # Publish to the same topic in a loop forever
 loopCount = 0
 while True:
     hours=datetime.now().hour
     mins=datetime.now().minute
-    #print ("WAIT::Food Will drop at time %s:%s" % (fhour, fmins))
-    #print ("WAIT::current time is %s:%s" % (hours, mins))
     if hours==fhour and mins == fmins:
-        length-=1
-        update_for_next_feed(length)
+        loopCount=loopCount + 1
+        update_for_next_feed(loopCount)
         print ("DROP::Food Drop Actual time %s:%s" % (fmins,fmins))
         print ("DROP::current time is %s:%s" % (hours, mins))
         sch_drop()
-    
-#    if args.mode == 'both' or args.mode == 'publish':
-#        myAWSIoTMQTTClient.publish(topic, messageJson, 1)
-#        if args.mode == 'publish':
-#        loopCount += 1
     time.sleep(1)
 
