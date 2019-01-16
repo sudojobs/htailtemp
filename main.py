@@ -44,7 +44,7 @@ def button_callback():
     motor_runner.pulse(5)
     message = {}
     message['action']     =  "feedActivity"
-    message['data'] =  
+    message['data'] = "1" 
     message['type'] = "appDrop"
     message['quantity_dropped']  = "150"
     message['food_remaining_container'] = "300"
@@ -63,7 +63,7 @@ def physical_button_press():
     print("Button was pushed!")
     message = {}
     message['action']     =  "feedActivity"
-    message['data'] =  
+    message['data'] = "1" 
     message['type'] = "buttonDrop"
     message['quantity_dropped']  = "150"
     message['food_remaining_container'] = "300"
@@ -84,7 +84,7 @@ def sch_drop():
     motor_runner.pulse(5)
     message = {}
     message['action']     =  "feedActivity"
-    message['data'] =  
+    message['data'] = "1" 
     message['type'] = "scheduleDrop"
     message['scheduleTime'] = "[7:20]"
     message['quantity_dropped']  = "150"
